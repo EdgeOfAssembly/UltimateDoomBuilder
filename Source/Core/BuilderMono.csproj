@@ -1654,16 +1654,19 @@
     <RemoveDir Directories="$(OutputPath)" Condition="Exists('$(OutputPath)')" />
   </Target>
   <Target Name="CopyAssetsToBuildFolder" AfterTargets="AfterBuild">
-    <!-- Copy all asset files to the build output directory -->
-    <ItemGroup>
-      <AssetsToCopy Include="@(None)" Condition="'%(None.IsAsset)' == 'true'" />
-    </ItemGroup>
+    <!-- Copy all asset files to the build output directory.
+         Uses direct shell copies for xbuild compatibility (xbuild does not
+         evaluate nested %(metadata) references in item Link values). -->
     <Message Importance="High" Text="Copying Assets to: $(OutputPath)" />
-    <Copy SourceFiles="@(AssetsToCopy)" DestinationFiles="$(OutputPath)%(Link)" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="true" />
+    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Common/.&quot; &quot;$(MSBuildProjectDirectory)/$(OutputPath)&quot;" />
+    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Linux/.&quot; &quot;$(MSBuildProjectDirectory)/$(OutputPath)&quot;"
+          Condition="'$(IsLinux)' == 'true' And Exists('$(MSBuildProjectDirectory)/../../Assets/Linux')" />
+    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Linux.$(Platform)/.&quot; &quot;$(MSBuildProjectDirectory)/$(OutputPath)&quot;"
+          Condition="'$(IsLinux)' == 'true' And Exists('$(MSBuildProjectDirectory)/../../Assets/Linux.$(Platform)')" />
   </Target>
   <Target Name="GenerateGitVersion" BeforeTargets="BeforeCompile">
     <!-- Get Git commit count and hash from the repository and write them to a temporary compile-time file -->
-    <!-- Uses file-based output capture for compatibility with both msbuild and xbuild -->
+    <!-- Uses file-based output capture + CreateProperty for compatibility with both msbuild and xbuild -->
     <MakeDir Directories="$(IntermediateOutputPath)" Condition="!Exists('$(IntermediateOutputPath)')" />
     <Exec Command="git rev-list --count HEAD &gt; &quot;$(IntermediateOutputPath)gitcount.tmp&quot;"
           StandardOutputImportance="low" IgnoreExitCode="true" />
@@ -1671,9 +1674,9 @@
                        Condition="Exists('$(IntermediateOutputPath)gitcount.tmp')">
       <Output TaskParameter="Lines" ItemName="_GitCountLines" />
     </ReadLinesFromFile>
-    <PropertyGroup>
-      <GitCommitCount>@(_GitCountLines)</GitCommitCount>
-    </PropertyGroup>
+    <CreateProperty Value="@(_GitCountLines)">
+      <Output TaskParameter="Value" PropertyName="GitCommitCount" />
+    </CreateProperty>
 
     <Exec Command="git rev-parse --short=7 HEAD &gt; &quot;$(IntermediateOutputPath)githash.tmp&quot;"
           StandardOutputImportance="low" IgnoreExitCode="true" />
@@ -1681,9 +1684,9 @@
                        Condition="Exists('$(IntermediateOutputPath)githash.tmp')">
       <Output TaskParameter="Lines" ItemName="_GitHashLines" />
     </ReadLinesFromFile>
-    <PropertyGroup>
-      <GitCommitHash>@(_GitHashLines)</GitCommitHash>
-    </PropertyGroup>
+    <CreateProperty Value="@(_GitHashLines)">
+      <Output TaskParameter="Value" PropertyName="GitCommitHash" />
+    </CreateProperty>
 
     <PropertyGroup>
       <GitCommitCount Condition="'$(GitCommitCount)' == '' Or $(GitCommitCount.StartsWith('fatal'))">0</GitCommitCount>
@@ -1694,14 +1697,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <VersionLines Include="using System.Reflection%3b" />
-      <VersionLines Include="using CodeImp.DoomBuilder%3b" />
-      <VersionLines Include="[assembly: AssemblyVersion(&quot;$(FullVersion)&quot;)]" />
-      <VersionLines Include="[assembly: AssemblyFileVersion(&quot;$(FullVersion)&quot;)]" />
-      <VersionLines Include="[assembly: AssemblyHash(&quot;$(GitCommitHash)&quot;)]" />
+      <VersionLines Include="[assembly: System.Reflection.AssemblyVersion(&quot;$(FullVersion)&quot;)]" />
+      <VersionLines Include="[assembly: System.Reflection.AssemblyFileVersion(&quot;$(FullVersion)&quot;)]" />
+      <VersionLines Include="[assembly: CodeImp.DoomBuilder.AssemblyHash(&quot;$(GitCommitHash)&quot;)]" />
     </ItemGroup>
 
-    <WriteLinesToFile File="$(VersionFilePath)" Lines="@(VersionLines)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(VersionFilePath)" Lines="@(VersionLines)" Overwrite="true" />
 
     <ItemGroup>
       <Compile Include="$(VersionFilePath)" />
