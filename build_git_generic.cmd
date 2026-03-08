@@ -30,6 +30,23 @@ ECHO.
 ECHO Building for platform %PLATFORM%
 ECHO.
 
+WHERE msbuild.exe >nul 2>nul
+IF %ERRORLEVEL% EQU 0 (
+    SET BUILDTOOL=msbuild.exe
+    GOTO BUILDTOOL_FOUND
+)
+WHERE xbuild >nul 2>nul
+IF %ERRORLEVEL% EQU 0 (
+    SET BUILDTOOL=xbuild
+    GOTO BUILDTOOL_FOUND
+)
+ECHO.
+ECHO.     ERROR: Neither msbuild.exe nor xbuild was found on PATH.
+ECHO.     Please install Microsoft Visual Studio or Mono.
+ECHO.
+EXIT /B 1
+:BUILDTOOL_FOUND
+
 MKDIR %DB_OUTDIR%
 
 rem git.exe checkout "Source/Core/Properties/AssemblyInfo.cs" > NUL
@@ -75,7 +92,7 @@ rem DEL /F /Q "setenv.bat"
 ECHO.
 ECHO Cleaning solutions...
 ECHO.
-msbuild.exe Builder.sln /t:Clean
+%BUILDTOOL% Builder.sln /t:Clean
 rem msbuild.exe Source/Tools/Updater/Updater.csproj /t:Clean
 
 rem ECHO.
@@ -110,9 +127,9 @@ ECHO Compiling Doom Builder...
 ECHO.
 IF DEFINED EXPERIMENTALNAME (
 	echo ##### BUILDING EXPERIMENTAL VERSION %EXPERIMENTALNAME%
-	msbuild.exe Builder.sln /t:Rebuild /p:Configuration=Release /p:Platform=%PLATFORM% /v:minimal /p:DefineConstants="TRACE;NO_UPDATER"
+	%BUILDTOOL% Builder.sln /t:Rebuild /p:Configuration=Release /p:Platform=%PLATFORM% /v:minimal /p:DefineConstants="TRACE;NO_UPDATER"
 ) ELSE (
-	msbuild.exe Builder.sln /t:Rebuild /p:Configuration=Release /p:Platform=%PLATFORM% /v:minimal
+	%BUILDTOOL% Builder.sln /t:Rebuild /p:Configuration=Release /p:Platform=%PLATFORM% /v:minimal
 )
 IF %ERRORLEVEL% NEQ 0 GOTO ERRORFAIL
 IF NOT EXIST "Build\Builder.exe" GOTO FILEFAIL
