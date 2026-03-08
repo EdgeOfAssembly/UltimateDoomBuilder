@@ -17,3 +17,15 @@ Configurations/
 Plugins/
 Scripting/
 Shaders/
+Fonts/
+Snippets/
+Sprites/
+Textures/
+UDBScript/
+*.txt
+*.png
+*.jpg
+*.gif
+*.ico
+*.cur
+*.tga
