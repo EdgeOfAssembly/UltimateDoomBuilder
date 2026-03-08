@@ -762,10 +762,18 @@
     </PostBuildEvent>
   </PropertyGroup>
   <Target Name="GenerateGitVersion" BeforeTargets="BeforeCompile">
-    <!-- Get Git commit count and hash from the repository and write them to a temporary compile-time file -->
-    <Exec Command="git rev-list --count HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitCount" />
-    </Exec>
+    <!-- Get Git commit count from the repository and write it to a temporary compile-time file -->
+    <!-- Uses file-based output capture + CreateProperty for compatibility with both msbuild and xbuild -->
+    <MakeDir Directories="$(IntermediateOutputPath)" Condition="!Exists('$(IntermediateOutputPath)')" />
+    <Exec Command="git rev-list --count HEAD &gt; &quot;$(IntermediateOutputPath)gitcount.tmp&quot;"
+          StandardOutputImportance="low" IgnoreExitCode="true" />
+    <ReadLinesFromFile File="$(IntermediateOutputPath)gitcount.tmp"
+                       Condition="Exists('$(IntermediateOutputPath)gitcount.tmp')">
+      <Output TaskParameter="Lines" ItemName="_GitCountLines" />
+    </ReadLinesFromFile>
+    <CreateProperty Value="@(_GitCountLines)">
+      <Output TaskParameter="Value" PropertyName="GitCommitCount" />
+    </CreateProperty>
 
     <PropertyGroup>
       <GitCommitCount Condition="'$(GitCommitCount)' == '' Or $(GitCommitCount.StartsWith('fatal'))">0</GitCommitCount>
@@ -775,17 +783,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <VersionLines Include="using System.Reflection%3b" />
-      <VersionLines Include="[assembly: AssemblyVersion(&quot;$(FullVersion)&quot;)]" />
-      <VersionLines Include="[assembly: AssemblyFileVersion(&quot;$(FullVersion)&quot;)]" />
+      <VersionLines Include="[assembly: System.Reflection.AssemblyVersion(&quot;$(FullVersion)&quot;)]" />
+      <VersionLines Include="[assembly: System.Reflection.AssemblyFileVersion(&quot;$(FullVersion)&quot;)]" />
     </ItemGroup>
 
-    <WriteLinesToFile File="$(VersionFilePath)" Lines="@(VersionLines)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(VersionFilePath)" Lines="@(VersionLines)" Overwrite="true" />
 
     <ItemGroup>
       <Compile Include="$(VersionFilePath)" />
     </ItemGroup>
-    
+
     <Message Importance="high" Text="##### Got build version from Git: $(FullVersion) (saved to temporary compile-time file $(VersionFilePath))" />
-  </Target>    
+  </Target>
 </Project>

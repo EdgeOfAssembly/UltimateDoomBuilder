@@ -16,20 +16,96 @@ __Note:__ this is experimental. None of the main developers are using Linux as a
 
 These instructions are for Debian-based distros and were tested with Ubuntu 24.04 LTS and Arch.
 
-- Install Mono
-  - **Ubuntu:** The `mono-complete` package from the Debian repo doesn't include `msbuild`, so you have to install `mono-complete` by following the instructions on the Mono project's website: https://www.mono-project.com/download/stable/#download-lin
-  - **Arch:** mono (and msbuild which is also required) is in the *extra/* repo, which is enabled by default. `sudo pacman -S mono mono-msbuild`
-- Install additional required packages
-  - **Ubuntu:** `sudo apt install make g++ git libx11-dev libxfixes-dev mesa-common-dev`
-  - **Arch:** `sudo pacman -S base-devel`
-    - If you're using X11 display manager you may need to install these packages: `libx11 libxfixes`
-    - If you are not using the proprietary nvidia driver you may need to install `mesa`
-- Go to a directory of your choice and clone the repository (it'll automatically create an `UltimateDoomBuilder` directory in the current directory): `git clone https://github.com/UltimateDoomBuilder/UltimateDoomBuilder.git`
-- Compile UDB: `cd UltimateDoomBuilder && make`
-- Run UDB: `cd Build && ./builder`
-- Alternatively, to compile UDB in debug mode:
-  - Run `make BUILDTYPE=Debug` in the root project directory
-  - This includes a debug output terminal in the bottom panel
+#### Dependency tiers
+
+UDB has two dependency tiers on Linux. Start with the minimum and add the
+full set only if you want the 3D rendering viewport.
+
+**Minimum** – builds and runs the editor (2D map editing fully functional):
+
+| Package | Purpose |
+|---------|---------|
+| `mono-complete` | Mono runtime + C# compiler |
+| `msbuild` **or** `mono-xbuild` | MSBuild-compatible build tool |
+| `make` | Drives the build |
+
+**Full** – also enables the native 3D rendering library (`libBuilderNative.so`):
+
+| Package | Purpose |
+|---------|---------|
+| `g++` | C++14 compiler for the native library |
+| `libx11-dev` | X11 headers (OpenGL context) |
+| `mesa-common-dev` | OpenGL headers |
+| `libxfixes-dev` *(optional)* | Cursor hide/show in 3D view |
+
+#### Install Mono
+
+**Ubuntu – latest Mono 6.13 (build from source, recommended):**
+
+The `mono-complete` package in Ubuntu's universe repository ships Mono 6.8,
+which is functional but older. For the latest Mono 6.13 (tracked by the
+EdgeOfAssembly/mono fork of mono/mono) build from source:
+
+```bash
+# Build dependencies
+sudo apt install -y build-essential autoconf automake libtool \
+  libglib2.0-dev cmake python3 gettext zlib1g-dev pkg-config
+
+# Clone and build (~30–45 min)
+git clone --depth=1 --recurse-submodules --shallow-submodules \
+  https://github.com/mono/mono.git /tmp/mono-src
+cd /tmp/mono-src
+./autogen.sh --prefix=/usr/local --with-mcs-docs=no \
+  --disable-nls --with-profile4_x=yes
+make -j$(nproc)
+sudo make install
+mono --version   # 6.13.x
+msbuild /version # 16.x (if available) or use xbuild
+```
+
+**Ubuntu – quick install (Mono 6.8 + xbuild, no extra repo needed):**
+
+> The Makefile automatically falls back to `xbuild` when `msbuild` is absent,
+> so this is the fastest path with zero extra repositories.
+
+```bash
+sudo apt install mono-complete mono-xbuild make
+```
+
+**Arch:**
+
+```bash
+sudo pacman -S mono mono-msbuild make
+```
+
+#### Install native rendering dependencies (optional – for 3D view)
+
+**Ubuntu:**
+```bash
+# Required for native 3D rendering:
+sudo apt install g++ libx11-dev mesa-common-dev
+# Optional – enables cursor hide/show in 3D view:
+sudo apt install libxfixes-dev
+```
+
+**Arch:**
+```bash
+sudo pacman -S base-devel
+# libx11 libxfixes only needed on X11 display servers
+```
+
+#### Build and run
+
+```bash
+git clone https://github.com/UltimateDoomBuilder/UltimateDoomBuilder.git
+cd UltimateDoomBuilder
+make            # Release build  (use BUILDTYPE=Debug for a debug build)
+cd Build && ./builder
+```
+
+If `g++` or the OpenGL/X11 dev headers are absent, `make` skips the native
+library and prints a note — the editor still launches but the 3D viewport will
+not be available.
 
 ### Flatpak build
 
