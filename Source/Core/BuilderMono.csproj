@@ -1663,12 +1663,27 @@
   </Target>
   <Target Name="GenerateGitVersion" BeforeTargets="BeforeCompile">
     <!-- Get Git commit count and hash from the repository and write them to a temporary compile-time file -->
-    <Exec Command="git rev-list --count HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitCount" />
-    </Exec>
-    <Exec Command="git rev-parse --short=7 HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
-    </Exec>
+    <!-- Uses file-based output capture for compatibility with both msbuild and xbuild -->
+    <MakeDir Directories="$(IntermediateOutputPath)" Condition="!Exists('$(IntermediateOutputPath)')" />
+    <Exec Command="git rev-list --count HEAD &gt; &quot;$(IntermediateOutputPath)gitcount.tmp&quot;"
+          StandardOutputImportance="low" IgnoreExitCode="true" />
+    <ReadLinesFromFile File="$(IntermediateOutputPath)gitcount.tmp"
+                       Condition="Exists('$(IntermediateOutputPath)gitcount.tmp')">
+      <Output TaskParameter="Lines" ItemName="_GitCountLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <GitCommitCount>@(_GitCountLines)</GitCommitCount>
+    </PropertyGroup>
+
+    <Exec Command="git rev-parse --short=7 HEAD &gt; &quot;$(IntermediateOutputPath)githash.tmp&quot;"
+          StandardOutputImportance="low" IgnoreExitCode="true" />
+    <ReadLinesFromFile File="$(IntermediateOutputPath)githash.tmp"
+                       Condition="Exists('$(IntermediateOutputPath)githash.tmp')">
+      <Output TaskParameter="Lines" ItemName="_GitHashLines" />
+    </ReadLinesFromFile>
+    <PropertyGroup>
+      <GitCommitHash>@(_GitHashLines)</GitCommitHash>
+    </PropertyGroup>
 
     <PropertyGroup>
       <GitCommitCount Condition="'$(GitCommitCount)' == '' Or $(GitCommitCount.StartsWith('fatal'))">0</GitCommitCount>
@@ -1691,7 +1706,7 @@
     <ItemGroup>
       <Compile Include="$(VersionFilePath)" />
     </ItemGroup>
-    
+
     <Message Importance="high" Text="Got build version from Git: $(FullVersion) (saved to temporary compile-time file $(VersionFilePath))" />
   </Target>
 </Project>

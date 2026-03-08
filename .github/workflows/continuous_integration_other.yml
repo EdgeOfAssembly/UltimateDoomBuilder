@@ -20,15 +20,33 @@ jobs:
           }
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update -qq
+        # Build Mono 6.12 (latest) from source – the mono-project.com apt repo is
+        # not available on every runner, so we compile from the canonical GitHub source.
+        sudo apt-get install -y --no-install-recommends \
+          build-essential autoconf automake libtool cmake \
+          libglib2.0-dev zlib1g-dev libssl-dev pkg-config gettext \
+          g++ libx11-dev libxfixes-dev mesa-common-dev xvfb
+        # Clone latest Mono source (6.13.x / tip of mono/mono main)
+        git clone --depth=1 https://github.com/EdgeOfAssembly/mono.git /tmp/mono-src
+        cd /tmp/mono-src
+        ./autogen.sh --prefix=/usr/local --with-mcs-docs=no --disable-nls \
+          --with-profile4_x=yes 2>&1 | tail -5
+        make -j$(nproc) 2>&1 | tail -10
+        sudo make install 2>&1 | tail -5
+        mono --version
+        msbuild /version 2>/dev/null || xbuild /version 2>/dev/null
 
     - name: Build
       run: |
         if [[ "${{ runner.os }}" == 'macOS' ]]; then
           make mac
         elif [[ "${{ runner.os }}" == 'Linux' ]]; then
-          sudo apt-get update
-          sudo apt install mesa-common-dev libxfixes-dev
           make linux
         fi
 

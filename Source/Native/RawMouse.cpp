@@ -195,7 +195,9 @@ float RawMouse_GetY(RawMouse* mouse)
 }
 
 #ifdef UDB_LINUX
+#ifdef HAVE_XFIXES
 #include <X11/extensions/Xfixes.h>
+#endif
 
 static Display *display = NULL;
 #endif
@@ -203,18 +205,22 @@ static Display *display = NULL;
 void MouseInput_ShowCursor(bool show)
 {
 #ifdef UDB_LINUX
+#ifdef HAVE_XFIXES
 	if (display == NULL)
 	{
 		display = XOpenDisplay(NULL);
 		if (display == NULL)
 			return;
-    }
+	}
 
 	if (show)
 		XFixesShowCursor(display, DefaultRootWindow(display));
 	else
 		XFixesHideCursor(display, DefaultRootWindow(display));
 	XSync(display, True);
+#else
+	(void)show; /* Xfixes not available: cursor show/hide is a no-op */
+#endif
 #endif
 }
 
