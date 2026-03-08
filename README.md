@@ -40,11 +40,11 @@ full set only if you want the 3D rendering viewport.
 
 #### Install Mono
 
-**Ubuntu – latest Mono 6.12 (build from source, recommended):**
+**Ubuntu – latest Mono 6.13 (build from source, recommended):**
 
 The `mono-complete` package in Ubuntu's universe repository ships Mono 6.8,
-which is functional but older. For the latest Mono 6.12 (last upstream release,
-February 2024) build from the canonical GitHub source:
+which is functional but older. For the latest Mono 6.13 (tracked by the
+EdgeOfAssembly/mono fork of mono/mono) build from source:
 
 ```bash
 # Build dependencies
@@ -60,7 +60,7 @@ cd /tmp/mono-src
 make -j$(nproc)
 sudo make install
 mono --version   # 6.13.x
-msbuild /version # 16.x
+msbuild /version # 16.x (if available) or use xbuild
 ```
 
 **Ubuntu – quick install (Mono 6.8 + xbuild, no extra repo needed):**

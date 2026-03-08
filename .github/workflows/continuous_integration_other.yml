@@ -25,20 +25,22 @@ jobs:
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
+        set -o pipefail
         sudo apt-get update -qq
-        # Build Mono 6.12 (latest) from source – the mono-project.com apt repo is
-        # not available on every runner, so we compile from the canonical GitHub source.
+        # Build Mono from source – the mono-project.com apt repo is
+        # not available on every runner, so we compile from a GitHub fork that tracks upstream.
         sudo apt-get install -y --no-install-recommends \
           build-essential autoconf automake libtool cmake \
           libglib2.0-dev zlib1g-dev libssl-dev pkg-config gettext \
           g++ libx11-dev libxfixes-dev mesa-common-dev xvfb
-        # Clone latest Mono source (6.13.x / tip of mono/mono main)
-        git clone --depth=1 https://github.com/EdgeOfAssembly/mono.git /tmp/mono-src
+        # Clone Mono fork (EdgeOfAssembly/mono) tracking 6.13.x / tip of mono/mono main
+        git clone --depth=1 --recurse-submodules --shallow-submodules \
+          https://github.com/EdgeOfAssembly/mono.git /tmp/mono-src
         cd /tmp/mono-src
         ./autogen.sh --prefix=/usr/local --with-mcs-docs=no --disable-nls \
-          --with-profile4_x=yes 2>&1 | tail -5
-        make -j$(nproc) 2>&1 | tail -10
-        sudo make install 2>&1 | tail -5
+          --with-profile4_x=yes
+        make -j$(nproc)
+        sudo make install
         mono --version
         msbuild /version 2>/dev/null || xbuild /version 2>/dev/null
 

@@ -197,9 +197,9 @@ float RawMouse_GetY(RawMouse* mouse)
 #ifdef UDB_LINUX
 #ifdef HAVE_XFIXES
 #include <X11/extensions/Xfixes.h>
-#endif
 
 static Display *display = NULL;
+#endif
 #endif
 
 void MouseInput_ShowCursor(bool show)

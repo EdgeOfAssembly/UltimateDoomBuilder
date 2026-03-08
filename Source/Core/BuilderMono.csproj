@@ -1657,11 +1657,11 @@
     <!-- Copy all asset files to the build output directory.
          Uses direct shell copies for xbuild compatibility (xbuild does not
          evaluate nested %(metadata) references in item Link values). -->
-    <Message Importance="High" Text="Copying Assets to: $(OutputPath)" />
-    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Common/.&quot; &quot;$(MSBuildProjectDirectory)/$(OutputPath)&quot;" />
-    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Linux/.&quot; &quot;$(MSBuildProjectDirectory)/$(OutputPath)&quot;"
+    <Message Importance="High" Text="Copying Assets to: $(TargetDir)" />
+    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Common/.&quot; &quot;$(TargetDir)&quot;" />
+    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Linux/.&quot; &quot;$(TargetDir)&quot;"
           Condition="'$(IsLinux)' == 'true' And Exists('$(MSBuildProjectDirectory)/../../Assets/Linux')" />
-    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Linux.$(Platform)/.&quot; &quot;$(MSBuildProjectDirectory)/$(OutputPath)&quot;"
+    <Exec Command="cp -r &quot;$(MSBuildProjectDirectory)/../../Assets/Linux.$(Platform)/.&quot; &quot;$(TargetDir)&quot;"
           Condition="'$(IsLinux)' == 'true' And Exists('$(MSBuildProjectDirectory)/../../Assets/Linux.$(Platform)')" />
   </Target>
   <Target Name="GenerateGitVersion" BeforeTargets="BeforeCompile">
